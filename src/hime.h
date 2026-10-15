@@ -31,6 +31,8 @@
 #include <gtk/gtk.h>
 #if !GTK_CHECK_VERSION(3, 0, 0)
 #include <gdk/gdkkeysyms.h>
+#elif GTK_CHECK_VERSION(4, 0, 0)
+#include <gdk/gdkkeysyms-compat.h>
 #endif
 
 #include <X11/Xlib.h>

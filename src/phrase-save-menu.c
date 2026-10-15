@@ -16,6 +16,7 @@
  */
 
 #include "hime.h"
+#include "hime-gtk-event-compat.h"
 
 #include "gst.h"
 #include "pho.h"
@@ -54,7 +55,7 @@ static void add_button (GtkWidget *vbox, char *s, int idx, int len) {
     g_signal_connect (G_OBJECT (but), "clicked", G_CALLBACK (cb_clicked), GINT_TO_POINTER (data));
 }
 
-void create_phrase_save_menu (GdkEventButton *event) {
+void create_phrase_save_menu (GdkEventButton *event) {  // event parameter kept for binary compatibility
     destroy_phrase_save_menu ();
 
     int len = tss.c_len - tss.c_idx;

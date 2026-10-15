@@ -20,6 +20,7 @@
 #include <signal.h>
 
 #include "hime.h"
+#include "hime-gtk-event-compat.h"
 
 #include "gst.h"
 #include "gtab.h"
@@ -29,8 +30,14 @@
 extern GdkPixbuf *gdk_pixbuf_get_from_surface (cairo_surface_t *surface, gint src_x, gint src_y, gint width, gint height);
 #endif
 
+/* GTK4 doesn't support GtkStatusIcon - use appindicator instead */
+#if GTK_CHECK_VERSION(4, 0, 0)
+#error "GtkStatusIcon is not available in GTK4. Use appindicator instead with --enable-appindicator."
+#endif
+
 extern void destroy_other_tray ();
 
+#if !GTK_CHECK_VERSION(4, 0, 0)
 GtkStatusIcon *tray_icon;
 static GdkPixbuf *pixbuf, *pixbuf_ch;
 static PangoLayout *pango;
@@ -231,17 +238,21 @@ gboolean tray_embedded_cb (GtkStatusIcon *status_icon, GParamSpec *pspec, gpoint
 }
 
 void toggle_im_enabled (), kbm_toggle ();
-gboolean tray_button_press_event_cb (GtkStatusIcon *status_icon, GdkEventButton *event, gpointer userdata) {
-    switch (event->button) {
+gboolean tray_button_press_event_cb (GtkStatusIcon *status_icon, GdkEvent *event, gpointer userdata) {
+    guint button = hime_gdk_event_get_button(event);
+    GdkModifierType state = hime_gdk_event_get_state(event);
+    guint32 event_time = gdk_event_get_time(event);
+
+    switch (button) {
     case 1:
-        if (event->state & GDK_SHIFT_MASK)
-            inmd_switch_popup_handler (NULL, (GdkEvent *) event);
+        if (state & GDK_SHIFT_MASK)
+            inmd_switch_popup_handler (NULL, event);
         else
             toggle_im_enabled ();
         break;
     case 2:
 #if 0
-      inmd_switch_popup_handler(NULL, (GdkEvent *)event);
+      inmd_switch_popup_handler(NULL, event);
 #else
         kbm_toggle ();
         dbg ("win_kbm_on %d\n", win_kbm_on);
@@ -251,7 +262,7 @@ gboolean tray_button_press_event_cb (GtkStatusIcon *status_icon, GdkEventButton 
     case 3:
         if (!tray_menu)
             tray_menu = create_tray_menu (mitems);
-        gtk_menu_popup (GTK_MENU (tray_menu), NULL, NULL, gtk_status_icon_position_menu, tray_icon, event->button, event->time);
+        gtk_menu_popup (GTK_MENU (tray_menu), NULL, NULL, gtk_status_icon_position_menu, tray_icon, button, event_time);
         break;
     }
 
@@ -307,3 +318,7 @@ gboolean is_exist_tray () {
 void init_tray () {
     g_timeout_add (200, create_tray, NULL);  // Old setting is 5000 here.
 }
+
+#else
+/* GTK4 tray support is handled by appindicator in tray-appindicator.c */
+#endif /* !GTK_CHECK_VERSION(4, 0, 0) */

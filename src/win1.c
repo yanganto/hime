@@ -18,6 +18,7 @@
  */
 
 #include "hime.h"
+#include "hime-gtk-event-compat.h"
 
 #include "gst.h"
 #include "pho.h"
@@ -54,8 +55,9 @@ static int idx_to_x (int tN, int i) {
     return x;
 }
 
-static gboolean button_scroll_event_tsin (GtkWidget *widget, GdkEventScroll *event, gpointer user_data) {
-    switch (event->direction) {
+static gboolean button_scroll_event_tsin (GtkWidget *widget, GdkEvent *event, gpointer user_data) {
+    guint direction = hime_gdk_event_get_scroll_direction(event);
+    switch (direction) {
     case GDK_SCROLL_UP:
         if (cb_page_up)
             cb_page_up ();
@@ -88,9 +90,10 @@ void change_win1_font (), force_preedit_shift ();
 
 static cb_selec_by_idx_t cb_sele_by_idx;
 
-static void mouse_button_callback (GtkWidget *widget, GdkEventButton *event, gpointer data) {
+static void mouse_button_callback (GtkWidget *widget, GdkEvent *event, gpointer data) {
     int v;
-    switch (event->button) {
+    guint button = hime_gdk_event_get_button(event);
+    switch (button) {
     case 1:
         v = GPOINTER_TO_INT (data);
         if (cb_sele_by_idx)

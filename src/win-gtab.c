@@ -18,6 +18,8 @@
  */
 
 #include "hime.h"
+#include "hime-gtk-event-compat.h"
+#include "hime-gtk-style-compat.h"
 
 #include "gst.h"
 #include "gtab.h"
@@ -85,7 +87,7 @@ void disp_gtab (char *str) {
 
 void set_gtab_input_color (GdkRGBA *rgbfg) {
     if (label_gtab)
-        gtk_widget_override_color (label_gtab, GTK_STATE_FLAG_NORMAL, rgbfg);
+        hime_widget_set_fg_color (label_gtab, rgbfg);
 }
 
 void set_gtab_input_error_color () {
@@ -197,9 +199,9 @@ void set_key_codes_label (char *s, int better) {
     }
 
     if (better) {
-        gtk_widget_override_color (label_key_codes, GTK_STATE_FLAG_NORMAL, &better_color);
+        hime_widget_set_fg_color (label_key_codes, &better_color);
     } else {
-        gtk_widget_override_color (label_key_codes, GTK_STATE_FLAG_NORMAL, NULL);
+        hime_widget_set_fg_color (label_key_codes, NULL);
     }
 
     gtk_label_set_text (GTK_LABEL (label_key_codes), s);
@@ -257,14 +259,15 @@ void create_win_gtab () {
         init_tsin_selection_win ();
 }
 
-static void mouse_button_callback (GtkWidget *widget, GdkEventButton *event, gpointer data) {
-    //  dbg("mouse_button_callback %d\n", event->button);
-    switch (event->button) {
+static void mouse_button_callback (GtkWidget *widget, GdkEvent *event, gpointer data) {
+    //  dbg("mouse_button_callback %d\n", button);
+    guint button = hime_gdk_event_get_button(event);
+    switch (button) {
     case 1:
         toggle_symbol_table ();
         break;
     case 2:
-        inmd_switch_popup_handler (widget, (GdkEvent *) event);
+        inmd_switch_popup_handler (widget, event);
         break;
     case 3:
         exec_hime_setup ();

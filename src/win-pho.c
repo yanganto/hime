@@ -18,6 +18,7 @@
  */
 
 #include "hime.h"
+#include "hime-gtk-event-compat.h"
 
 #include "win-common.h"
 #include "win-pho.h"
@@ -106,14 +107,15 @@ void create_win_pho () {
     apply_widget_bg_color (win_pho);
 }
 
-static void mouse_button_callback (GtkWidget *widget, GdkEventButton *event, gpointer data) {
-    //  dbg("mouse_button_callback %d\n", event->button);
-    switch (event->button) {
+static void mouse_button_callback (GtkWidget *widget, GdkEvent *event, gpointer data) {
+    //  dbg("mouse_button_callback %d\n", button);
+    guint button = hime_gdk_event_get_button(event);
+    switch (button) {
     case 1:
         toggle_symbol_table ();
         break;
     case 2:
-        inmd_switch_popup_handler (widget, (GdkEvent *) event);
+        inmd_switch_popup_handler (widget, event);
         break;
     case 3:
         exec_hime_setup ();

@@ -193,24 +193,30 @@ PKG_CHECK_MODULES(
   [gtk3_is_installed=yes],
   [gtk3_is_installed=no]
 )
+PKG_CHECK_MODULES(
+  [GTK4],
+  [gtk+-4.0 >= 4.0.0],
+  [gtk4_is_installed=yes],
+  [gtk4_is_installed=no]
+)
 AS_IF(
-  [test "x$gtk2_is_installed" = "xno" -a "x$gtk3_is_installed" = "xno"],
-  [AC_MSG_ERROR([Please install GTK 2 or GTK 3])]
+  [test "x$gtk2_is_installed" = "xno" -a "x$gtk3_is_installed" = "xno" -a "x$gtk4_is_installed" = "xno"],
+  [AC_MSG_ERROR([Please install GTK 2, GTK 3, or GTK 4])]
 )
 AC_ARG_WITH(
   [gtk],
   [AS_HELP_STRING(
     [--with-gtk],
-    [Select GTK version, default is GTK 2. [ARG: 2.0|3.0]]
+    [Select GTK version, default is GTK 4. [ARG: 2.0|3.0|4.0]]
   )],
   [
     with_gtk=$withval
     AS_IF(
-      [test "x$with_gtk" != "x3.0"],
+      [test "x$with_gtk" != "x3.0" -a "x$with_gtk" != "x4.0"],
       [with_gtk=2.0]
     )
   ],
-  [with_gtk=2.0]
+  [with_gtk=4.0]
 )
 AS_IF(
   [test "x$with_gtk" = "x2.0"],
@@ -218,20 +224,33 @@ AS_IF(
     AC_SUBST([GTK], ["gtk+-2.0"])
     AC_SUBST([GTK_IM], ["Y"])
     AC_SUBST([GTK3_IM], ["N"])
+    AC_SUBST([GTK4_IM], ["N"])
     AC_SUBST([GTKINC], ["$GTK2_CFLAGS"])
     AC_SUBST([GTKLDFLAGS], ["$GTK2_LIBS"])
     AC_SUBST([APPINDICATOR], ["appindicator-0.1"])
+  ],
+  [test "x$with_gtk" = "x4.0"],
+  [
+    AC_SUBST([GTK], ["gtk+-4.0"])
+    AC_SUBST([GTK_IM], ["N"])
+    AC_SUBST([GTK3_IM], ["N"])
+    AC_SUBST([GTK4_IM], ["Y"])
+    AC_SUBST([GTKINC], ["$GTK4_CFLAGS"])
+    AC_SUBST([GTKLDFLAGS], ["$GTK4_LIBS"])
+    AC_SUBST([APPINDICATOR], ["appindicator3-0.1"])
   ],
   [
     AC_SUBST([GTK], ["gtk+-3.0"])
     AC_SUBST([GTK_IM], ["N"])
     AC_SUBST([GTK3_IM], ["Y"])
+    AC_SUBST([GTK4_IM], ["N"])
     AC_SUBST([GTKINC], ["$GTK3_CFLAGS"])
     AC_SUBST([GTKLDFLAGS], ["$GTK3_LIBS"])
     AC_SUBST([APPINDICATOR], ["appindicator3-0.1"])
   ]
 )
 AM_CONDITIONAL([GTK2], [test "x$with_gtk" = "x2.0"])
+AM_CONDITIONAL([GTK4], [test "x$with_gtk" = "x4.0"])
 # Qt
 # QT5_IM
 # QT6_IM
@@ -415,7 +434,7 @@ PKG_CHECK_MODULES(
 )
 AC_ARG_ENABLE(
   [appindicator],
-  [AS_HELP_STRING([--enable-appindicator], [Enable Ubuntu Unity Tray, default is auto-detect])],
+  [AS_HELP_STRING([--enable-appindicator], [Enable Ubuntu Unity Tray, default is auto-detect (required for GTK4)])],
   [enable_appindicator=$enableval],
   [
     AS_IF(
@@ -423,6 +442,17 @@ AC_ARG_ENABLE(
       [enable_appindicator=yes],
       [enable_appindicator=no]
     )
+  ]
+)
+# GTK4 requires appindicator since GtkStatusIcon is not available
+AS_IF(
+  [test "x$with_gtk" = "x4.0"],
+  [
+    AS_IF(
+      [test "x$appindicator_is_installed" = "xno"],
+      [AC_MSG_ERROR([appindicator is required for GTK4 support. Please install libappindicator3 or use --disable-system-tray.])]
+    )
+    enable_appindicator=yes
   ]
 )
 AS_IF(
