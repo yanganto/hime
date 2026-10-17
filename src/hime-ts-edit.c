@@ -18,6 +18,7 @@
  */
 
 #include "hime.h"
+#include "hime-gtk-event-compat.h"
 
 #include "gtab.h"
 #include "lang.h"
@@ -504,14 +505,26 @@ static void page_down (void) {
     }
 }
 
-gboolean key_press_event (GtkWidget *widget,
-                          GdkEventKey *event,
+#if GTK_CHECK_VERSION(4, 0, 0)
+/* GTK4: key-pressed signal handler for event controller
+ * Signature: gboolean (*key_pressed)(GtkEventControllerKey *controller,
+ *                                     guint keyval, guint keycode,
+ *                                     GdkModifierType state, gpointer user_data)
+ */
+gboolean key_press_event (GtkEventControllerKey *controller,
+                          guint keyval,
+                          guint keycode,
+                          GdkModifierType state,
                           gpointer user_data) {
+    (void)controller;  /* Unused in GTK4 version */
+    (void)keycode;     /* Unused */
+    (void)state;       /* Unused */
+
     if (last_row) {
         return FALSE;
     }
 
-    switch (event->keyval) {
+    switch (keyval) {
     case GDK_KEY_Up:
         prev_item ();
         break;
@@ -536,6 +549,48 @@ gboolean key_press_event (GtkWidget *widget,
 
     return TRUE;
 }
+#else
+/* GTK2/3: key-press-event signal handler
+ * Signature: gboolean (*key_press_event)(GtkWidget *widget,
+ *                                        GdkEventKey *event,
+ *                                        gpointer user_data)
+ */
+gboolean key_press_event (GtkWidget *widget,
+                          GdkEvent *event,
+                          gpointer user_data) {
+    (void)widget;      /* Unused */
+
+    if (last_row) {
+        return FALSE;
+    }
+
+    guint keyval = hime_gdk_event_get_keyval(event);
+    switch (keyval) {
+    case GDK_KEY_Up:
+        prev_item ();
+        break;
+    case GDK_KEY_Down:
+        next_item ();
+        break;
+    case GDK_KEY_Page_Up:
+        page_up ();
+        break;
+    case GDK_KEY_Page_Down:
+        page_down ();
+        break;
+    case GDK_KEY_Home:
+        page_ofs = 0;
+        break;
+    case GDK_KEY_End:
+        page_ofs = tsN - PAGE_LEN;
+        break;
+    }
+
+    disp_page ();
+
+    return TRUE;
+}
+#endif
 
 gboolean is_pinyin_kbm ();
 
@@ -582,8 +637,18 @@ int main (int argc, char **argv) {
     mainwin = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_position (GTK_WINDOW (mainwin), GTK_WIN_POS_CENTER);
 
+#if GTK_CHECK_VERSION(4, 0, 0)
+    /* GTK4: Use "key-pressed" signal with new signature
+     * The callback will be adapted in the event controller */
+    GtkEventController *controller = gtk_event_controller_key_new ();
+    g_signal_connect (controller, "key-pressed",
+                      G_CALLBACK (key_press_event), NULL);
+    gtk_widget_add_controller (mainwin, controller);
+#else
+    /* GTK2/3: Use legacy "key-press-event" signal */
     g_signal_connect (G_OBJECT (mainwin), "key-press-event",
                       G_CALLBACK (key_press_event), NULL);
+#endif
 
     gtk_window_set_has_resize_grip (GTK_WINDOW (mainwin), FALSE);
     gtk_window_set_resizable (GTK_WINDOW (mainwin), FALSE);

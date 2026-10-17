@@ -453,8 +453,15 @@ int module_init_win (HIME_module_main_functions *pFuncs) {
                                              GTK_MESSAGE_ERROR,
                                              GTK_BUTTONS_CLOSE,
                                              "chewing init failed");
+#if GTK_CHECK_VERSION(4, 0, 0)
+        /* GTK4: gtk_dialog_run is removed */
+        g_signal_connect (pErrDialog, "response", G_CALLBACK (gtk_window_destroy), NULL);
+        gtk_window_present (GTK_WINDOW (pErrDialog));
+#else
+        /* GTK2/3: Use traditional gtk_dialog_run */
         gtk_dialog_run (GTK_DIALOG (pErrDialog));
         gtk_widget_destroy (pErrDialog);
+#endif
         return FALSE;
     }
 
@@ -464,8 +471,14 @@ int module_init_win (HIME_module_main_functions *pFuncs) {
     gtk_widget_realize (g_pWinChewing);
     g_himeModMainFuncs.mf_set_no_focus (g_pWinChewing);
 
+#if GTK_CHECK_VERSION(4, 0, 0)
+    /* GTK4: Use GtkBox instead of GtkEventBox (which is removed) */
+    g_pEvBoxChewing = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+#else
+    /* GTK2/3: Use traditional GtkEventBox */
     g_pEvBoxChewing = gtk_event_box_new ();
     gtk_event_box_set_visible_window (GTK_EVENT_BOX (g_pEvBoxChewing), FALSE);
+#endif
 
     if (!g_pEvBoxChewing)
         return FALSE;

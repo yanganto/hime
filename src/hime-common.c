@@ -18,6 +18,7 @@
  */
 
 #include "hime.h"
+#include "hime-gtk-style-compat.h"
 
 #include "pho.h"
 
@@ -98,11 +99,11 @@ void apply_widget_bg_color (GtkWidget *widget) {
     if (hime_use_custom_theme) {
         GdkRGBA color;
         gdk_rgba_parse (&color, hime_win_color_bg);
-        gtk_widget_override_background_color (widget, GTK_STATE_FLAG_NORMAL, &color);
+        hime_widget_set_bg_color (widget, &color);
         return;
     }
 
-    gtk_widget_override_background_color (widget, GTK_STATE_FLAG_NORMAL, NULL);
+    hime_widget_set_bg_color (widget, NULL);
 }
 
 void apply_widget_fg_color (GtkWidget *widget) {
@@ -112,11 +113,11 @@ void apply_widget_fg_color (GtkWidget *widget) {
     if (hime_use_custom_theme) {
         GdkRGBA color;
         gdk_rgba_parse (&color, hime_win_color_fg);
-        gtk_widget_override_color (widget, GTK_STATE_FLAG_NORMAL, &color);
+        hime_widget_set_fg_color (widget, &color);
         return;
     }
 
-    gtk_widget_override_color (widget, GTK_STATE_FLAG_NORMAL, NULL);
+    hime_widget_set_fg_color (widget, NULL);
 }
 
 void set_label_font_size (GtkWidget *label, int size) {
@@ -135,8 +136,7 @@ void set_label_font_size (GtkWidget *label, int size) {
     pango_font_description_merge (font, nfont, TRUE);
     pango_font_description_free (nfont);
 
-    // XXX(xatier): deprecated function, find alternatives
-    gtk_widget_override_font (label, font);
+    hime_widget_set_font_from_desc (label, font);
 }
 
 // the width of ascii space in firefly song

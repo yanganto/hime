@@ -22,6 +22,7 @@
 #include <X11/extensions/XTest.h>
 
 #include "hime.h"
+#include "hime-gtk-style-compat.h"
 
 #include "gtab.h"
 #include "win-kbm.h"
@@ -169,10 +170,14 @@ static void mod_fg_all (GtkWidget *label, GdkRGBA *rgbfg) {
         return;
     }
 
+#if GTK_CHECK_VERSION(4, 0, 0)
+    hime_widget_set_fg_color (label, rgbfg);
+#else
     gtk_widget_override_color (label, GTK_STATE_FLAG_NORMAL, rgbfg);
     gtk_widget_override_color (label, GTK_STATE_FLAG_ACTIVE, rgbfg);
     gtk_widget_override_color (label, GTK_STATE_FLAG_SELECTED, rgbfg);
     gtk_widget_override_color (label, GTK_STATE_FLAG_PRELIGHT, rgbfg);
+#endif
 }
 
 static void send_fake_key_eve2 (const KeySym key, const gboolean press) {

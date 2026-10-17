@@ -21,6 +21,7 @@ apt-get install --yes \
         libxtst-dev \
         libgtk2.0-dev \
         libgtk-3-dev \
+        libgtk-4-dev \
         libanthy-dev \
         libchewing3-dev \
         qtbase5-private-dev

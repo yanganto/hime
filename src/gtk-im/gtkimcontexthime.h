@@ -26,9 +26,12 @@
 #include <gtk/gtkimmodule.h>
 #if !GTK_CHECK_VERSION(3, 0, 0)
 #include <gdk/gdkkeysyms.h>
+#elif GTK_CHECK_VERSION(4, 0, 0)
+#include <gdk/gdkkeysyms-compat.h>
 #endif
 
 #include "../hime-gtk-compatible.h"
+#include "../hime-gtk-event-compat.h"
 
 extern GType gtk_type_im_context_hime;
 

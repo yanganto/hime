@@ -1158,6 +1158,33 @@ lab1:
     return TRUE;
 }
 
+#if GTK_CHECK_VERSION(4, 0, 0)
+/* GTK4: Use event controller for button press events */
+static void mouse_button_callback (GtkGestureClick *gesture,
+                                    gint n_press,
+                                    gdouble x,
+                                    gdouble y,
+                                    gpointer data) {
+    guint button = gtk_gesture_single_get_current_button (GTK_GESTURE_SINGLE (gesture));
+    GtkWidget *widget = gtk_event_controller_get_widget (GTK_EVENT_CONTROLLER (gesture));
+
+    switch (button) {
+    case 1:
+        gmf.mf_toggle_symbol_table ();
+        break;
+    case 2:
+        /* For GTK4, we need to create a synthetic event or handle differently */
+        if (widget) {
+            gmf.mf_inmd_switch_popup_handler (widget, NULL);
+        }
+        break;
+    case 3:
+        gmf.mf_exec_hime_setup ();
+        break;
+    }
+}
+#else
+/* GTK2/3: Use traditional event handler */
 static void mouse_button_callback (GtkWidget *widget, GdkEventButton *event, gpointer data) {
     //  dbg("mouse_button_callback %d\n", event->button);
     switch (event->button) {
@@ -1172,6 +1199,7 @@ static void mouse_button_callback (GtkWidget *widget, GdkEventButton *event, gpo
         break;
     }
 }
+#endif
 
 #include <dlfcn.h>
 
@@ -1192,8 +1220,15 @@ int module_init_win (HIME_module_main_functions *funcs) {
                                                     GTK_MESSAGE_ERROR,
                                                     GTK_BUTTONS_CLOSE,
                                                     "Cannot init anthy. Please install anthy.");
+#if GTK_CHECK_VERSION(4, 0, 0)
+        /* GTK4: gtk_dialog_run is removed, use gtk_dialog_present and connect response */
+        g_signal_connect (dialog, "response", G_CALLBACK (gtk_window_destroy), NULL);
+        gtk_window_present (GTK_WINDOW (dialog));
+#else
+        /* GTK2/3: Use traditional gtk_dialog_run */
         gtk_dialog_run (GTK_DIALOG (dialog));
         gtk_widget_destroy (dialog);
+#endif
         return FALSE;
     }
 
@@ -1211,6 +1246,21 @@ int module_init_win (HIME_module_main_functions *funcs) {
     gtk_widget_realize (win_anthy);
     gmf.mf_set_no_focus (win_anthy);
 
+#if GTK_CHECK_VERSION(4, 0, 0)
+    /* GTK4: Use GtkBox instead of GtkEventBox (which is removed)
+     * Use GtkGestureClick for mouse button events */
+    event_box_anthy = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_container_add (GTK_CONTAINER (win_anthy), event_box_anthy);
+
+    GtkWidget *hbox_top = event_box_anthy;
+
+    /* Add gesture controller for button press events */
+    GtkGesture *gesture = gtk_gesture_click_new ();
+    gtk_widget_add_controller (event_box_anthy, GTK_EVENT_CONTROLLER (gesture));
+    g_signal_connect (gesture, "pressed",
+                      G_CALLBACK (mouse_button_callback), NULL);
+#else
+    /* GTK2/3: Use traditional GtkEventBox */
     event_box_anthy = gtk_event_box_new ();
     gtk_event_box_set_visible_window (GTK_EVENT_BOX (event_box_anthy), FALSE);
 
@@ -1221,6 +1271,7 @@ int module_init_win (HIME_module_main_functions *funcs) {
 
     g_signal_connect (G_OBJECT (event_box_anthy), "button-press-event",
                       G_CALLBACK (mouse_button_callback), NULL);
+#endif
 
     if (!seg) {
         int n = sizeof (SEG) * MAX_SEG_N;

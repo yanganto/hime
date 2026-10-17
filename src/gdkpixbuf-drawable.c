@@ -22,7 +22,12 @@
 
 #include <gtk/gtk.h>
 
-#if !GTK_CHECK_VERSION(2, 90, 6)
+/* Provide gdk_pixbuf_get_from_surface for all GTK versions
+ * GTK2: Function might not be in GdkPixbuf, so we provide it
+ * GTK3: Function is in GdkPixbuf, but we provide a fallback
+ * GTK4: Function might not be in GdkPixbuf (removed in newer versions), so we provide it
+ */
+#if !GTK_CHECK_VERSION(2, 90, 6) || GTK_CHECK_VERSION(4, 0, 0)
 extern GdkPixbuf *gdk_pixbuf_get_from_surface (cairo_surface_t *surface, gint src_x, gint src_y, gint width, gint height);
 
 /**

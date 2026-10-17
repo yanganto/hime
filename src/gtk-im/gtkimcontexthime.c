@@ -214,8 +214,16 @@ static void gtk_im_context_hime_set_client_window (GtkIMContext *context,
 
     get_hime_im_client (context_xim);
     if (context_xim->hime_ch) {
+#if GTK_CHECK_VERSION(4, 0, 0)
+        // GTK4: client_window is opaque, try to get X11 window ID if available
+        // For GTK4 with X11, we'd need to use gdk_x11_surface_get_xid() on the surface
+        // For now, use a dummy value - actual implementation would need window widget context
+        hime_im_client_set_client_window (context_xim->hime_ch, 0);
+#else
+        // GTK2/3: use direct X11 window ID
         hime_im_client_set_client_window (context_xim->hime_ch,
                                           GDK_WINDOW_XID (client_window));
+#endif
     }
 }
 
@@ -263,6 +271,47 @@ static void gtk_im_context_hime_get_preedit_string (
 static int construct_xevent (const GdkEventKey *event,
                              XKeyPressedEvent *xevent) {
 
+#if GTK_CHECK_VERSION(4, 0, 0)
+    // GTK4: use accessor functions and gdk_display for X11 operations
+    GdkDisplay *display = gdk_display_get_default ();
+    if (!display || !GDK_IS_X11_DISPLAY (display))
+        return 0;
+
+    Display *xdisplay = GDK_X11_DISPLAY (display)->xdisplay;
+    if (!xdisplay)
+        return 0;
+
+    // Get X11 root window from display
+    Window root_window = DefaultRootWindow (xdisplay);
+
+    // Use accessor functions to get event data
+    GdkModifierType state = hime_gdk_event_get_state ((GdkEvent *)event);
+    guint event_type = hime_gdk_event_get_event_type ((GdkEvent *)event);
+    guint32 event_time = hime_gdk_event_get_time ((GdkEvent *)event);
+    guint keycode = hime_gdk_event_get_keycode ((GdkEvent *)event);
+
+    // Construct X event
+    xevent->type = (event_type == GDK_KEY_PRESS) ? KeyPress : KeyRelease;
+    xevent->serial = 0;
+    xevent->send_event = False;
+    xevent->display = xdisplay;
+    // Note: In GTK4, we don't have direct access to GdkWindow's X11 ID
+    // Use a placeholder - the actual window ID would need to come from context
+    xevent->window = root_window;
+    xevent->root = root_window;
+    xevent->subwindow = root_window;
+    xevent->time = event_time;
+    xevent->x = 0;
+    xevent->y = 0;
+    xevent->x_root = 0;
+    xevent->y_root = 0;
+    xevent->state = state;
+    xevent->keycode = keycode;
+    xevent->same_screen = True;
+
+    return 1;
+#else
+    // GTK2/3: use direct field access
     GdkScreen *screen = gdk_window_get_screen (event->window);
     if (!screen) {
         return 0;
@@ -287,6 +336,7 @@ static int construct_xevent (const GdkEventKey *event,
     xevent->same_screen = True;
 
     return 1;
+#endif
 }
 
 static gboolean gtk_im_context_hime_filter_keypress (GtkIMContext *context,
@@ -321,7 +371,8 @@ static gboolean gtk_im_context_hime_filter_keypress (GtkIMContext *context,
 #if (!FREEBSD)
     // Convert from a GDK key symbol to the corresponding ISO10646 (Unicode) character.
     // returns 0 if there is no corresponding character.
-    const guint32 unicode = gdk_keyval_to_unicode (event->keyval);
+    guint keyval = hime_gdk_event_get_keyval ((GdkEvent *)event);
+    const guint32 unicode = gdk_keyval_to_unicode (keyval);
     if (unicode) {
         num_bytes = g_unichar_to_utf8 (unicode, buffer);
         buffer[num_bytes] = '\0';
@@ -331,12 +382,15 @@ static gboolean gtk_im_context_hime_filter_keypress (GtkIMContext *context,
     // tell hime-im-client to process key event
     // result_str would hold the result
     gboolean context_has_str = context_xim->pe_str && context_xim->pe_str[0];
-    if (event->type == GDK_KEY_PRESS) {
+    guint event_type = hime_gdk_event_get_event_type ((GdkEvent *)event);
+    GdkModifierType event_state = hime_gdk_event_get_state ((GdkEvent *)event);
+
+    if (event_type == GDK_KEY_PRESS) {
         result = hime_im_client_forward_key_press (context_xim->hime_ch,
-                                                   keysym, event->state, &result_str);
+                                                   keysym, event_state, &result_str);
     } else {
         result = hime_im_client_forward_key_release (context_xim->hime_ch,
-                                                     keysym, event->state, &result_str);
+                                                     keysym, event_state, &result_str);
     }
 
     char *preedit_str = NULL;
@@ -397,13 +451,13 @@ static gboolean gtk_im_context_hime_filter_keypress (GtkIMContext *context,
         context_xim->pe_cursor = cursor_pos;
     }
 
-    const gboolean alt_or_control_pressed = event->state & (Mod1Mask | ControlMask);
+    const gboolean alt_or_control_pressed = event_state & (Mod1Mask | ControlMask);
     // GDK_KEY_PRESS event
     // hime_im_client_forward_key_press returns False
     // result_str is empty
     // buffer[0] is printable
     // not alt_or_control_pressed
-    if (event->type == GDK_KEY_PRESS &&
+    if (event_type == GDK_KEY_PRESS &&
         !result &&
         !result_str &&
         num_bytes &&

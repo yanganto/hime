@@ -43,7 +43,11 @@ static void create_win_message (char *icon, char *text, int duration) {
     if (icon[0] != '-') {
         GtkWidget *image = gtk_image_new_from_file (icon);
         if (text[0] == '-') {
-#if GTK_CHECK_VERSION(2, 91, 0)
+#if GTK_CHECK_VERSION(4, 0, 0)
+            // GTK4: Shape combining is not directly available
+            // Skip shape combining for now - future: use CSS clip-path or similar
+            (void)image;  // Avoid unused variable warning
+#elif GTK_CHECK_VERSION(2, 91, 0)
             GdkPixbuf *pixbuf = NULL;
             GdkPixbufAnimation *anime = NULL;
             switch (gtk_image_get_storage_type (GTK_IMAGE (image))) {

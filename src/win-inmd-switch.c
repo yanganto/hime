@@ -16,6 +16,7 @@
  */
 
 #include "hime.h"
+#include "hime-gtk-event-compat.h"
 
 #include "gtab.h"
 
@@ -74,12 +75,11 @@ gint inmd_switch_popup_handler (GtkWidget *widget, GdkEvent *event) {
     if (!menu)
         create_inmd_switch ();
 
-    GdkEventButton *event_button;
-
-    if (event->type == GDK_BUTTON_PRESS) {
-        event_button = (GdkEventButton *) event;
+    if (event && gdk_event_get_event_type(event) == GDK_BUTTON_PRESS) {
+        guint button = hime_gdk_event_get_button(event);
+        guint32 event_time = gdk_event_get_time(event);
         gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL,
-                        event_button->button, event_button->time);
+                        button, event_time);
         return TRUE;
     }
 
@@ -87,12 +87,8 @@ gint inmd_switch_popup_handler (GtkWidget *widget, GdkEvent *event) {
 }
 
 void show_inmd_menu () {
-    GdkEventButton eve;
-
-    eve.type = GDK_BUTTON_PRESS;
-    eve.button = 1;
-    eve.time = gtk_get_current_event_time ();
-    inmd_switch_popup_handler (NULL, (GdkEvent *) &eve);
+    guint32 event_time = gtk_get_current_event_time ();
+    gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL, 1, event_time);
 }
 
 void destroy_inmd_menu () {

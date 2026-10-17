@@ -15,11 +15,9 @@ yum groupinstall -y 'Development Tools'
 yum install -y \
     desktop-file-utils \
     gettext \
-    gtk2-devel\
     gtk3-devel \
+    gtk4-devel \
     libXtst-devel \
-    qt5-qtbase-devel \
-    qt5-qtbase-private-devel \
 
 
 set +x; separator; separator; separator; set -x

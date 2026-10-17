@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 
 #include "hime.h"
+#include "hime-gtk-event-compat.h"
 
 #include "gtab-buf.h"
 #include "gtab.h"
@@ -356,11 +357,12 @@ gboolean win_sym_page_down () {
     return TRUE;
 }
 
-static gboolean button_scroll_event (GtkWidget *widget, GdkEventScroll *event, gpointer user_data) {
+static gboolean button_scroll_event (GtkWidget *widget, GdkEvent *event, gpointer user_data) {
     if (pagesN < 2)
         return TRUE;
 
-    switch (event->direction) {
+    guint direction = hime_gdk_event_get_scroll_direction(event);
+    switch (direction) {
     case GDK_SCROLL_UP:
         win_sym_page_up ();
         break;
@@ -374,10 +376,13 @@ static gboolean button_scroll_event (GtkWidget *widget, GdkEventScroll *event, g
     return TRUE;
 }
 
-static void mouse_button_callback_up_down (GtkWidget *widget, GdkEventButton *event, gpointer data) {
-    GdkEventScroll sc;
-    sc.direction = data ? GDK_SCROLL_UP : GDK_SCROLL_DOWN;
-    button_scroll_event (NULL, &sc, NULL);
+static void mouse_button_callback_up_down (GtkWidget *widget, GdkEvent *event, gpointer data) {
+    guint direction = data ? GDK_SCROLL_UP : GDK_SCROLL_DOWN;
+    if (direction == GDK_SCROLL_UP) {
+        win_sym_page_up ();
+    } else {
+        win_sym_page_down ();
+    }
 }
 
 void create_win_sym () {
