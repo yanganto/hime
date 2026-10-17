@@ -19,6 +19,7 @@ pacman -Syuu --noconfirm --needed \
     libxtst \
     gtk2 \
     gtk3 \
+    gtk4 \
     anthy \
     libchewing \
     libappindicator-gtk2 \

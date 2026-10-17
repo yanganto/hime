@@ -20,6 +20,7 @@ yum install -y \
     gettext \
     gtk2-devel\
     gtk3-devel \
+    gtk4-devel \
     libXtst-devel \
     qt5-qtbase-devel \
     qt5-qtbase-private-devel \
