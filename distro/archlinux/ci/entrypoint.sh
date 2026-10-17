@@ -17,12 +17,10 @@ pacman -Syuu --noconfirm --needed \
 pacman -Syuu --noconfirm --needed \
     clang \
     libxtst \
-    gtk2 \
     gtk3 \
     gtk4 \
     anthy \
     libchewing \
-    libappindicator-gtk2 \
     libappindicator-gtk3 \
     qt5-base \
     qt6-base
